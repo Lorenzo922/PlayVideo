@@ -1,150 +1,123 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>PlayVideos</title>
-</head>
-<body>
-  <!-- Área de Login -->
-  <div id="login-area" style="display: none;">
-    <h1>Login</h1>
-    <input type="email" id="loginEmail" placeholder="Seu email (gmail, hotmail...)"><br>
-    <input type="password" id="loginPassword" placeholder="Senha"><br>
-    <button onclick="login()">Entrar</button>
-    <hr>
-    <h2>Cadastro</h2>
-    <input type="text" id="registerUsername" placeholder="Nome de usuário"><br>
-    <input type="email" id="registerEmail" placeholder="Seu email real"><br>
-    <input type="password" id="registerPassword" placeholder="Senha"><br>
-    <button onclick="register()">Cadastrar</button>
-  </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> <!-- adicionar esta linha junto com os scripts Firebase -->
 
-  <!-- Área principal -->
-  <div id="main-area" style="display: none;">
-    <h1>Bem-vindo ao PlayVideos!</h1>
-    <p id="user-email"></p>
-    <button onclick="logout()">Sair</button><br><br>
-    <input type="file" id="videoUpload" accept="video/mp4">
-    <button onclick="uploadVideo()">Enviar Vídeo</button>
-    <h2>Vídeos:</h2>
-    <div id="videoList"></div>
-  </div>
+<script>
+  // Firebase config (mantém igual)
+  const firebaseConfig = {
+    apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+    authDomain: "playvideos-e2d5d.firebaseapp.com",
+    databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+    projectId: "playvideos-e2d5d",
+    storageBucket: "playvideos-e2d5d.appspot.com",
+    messagingSenderId: "220622211507",
+    appId: "1:220622211507:web:920bc3199ffacb5b7963c6"
+  };
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
-      authDomain: "playvideos-e2d5d.firebaseapp.com",
-      databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
-      projectId: "playvideos-e2d5d",
-      storageBucket: "playvideos-e2d5d.appspot.com",
-      messagingSenderId: "220622211507",
-      appId: "1:220622211507:web:920bc3199ffacb5b7963c6"
-    };
+  // Config Supabase (coloque sua URL e anon key do seu projeto)
+  const supabaseUrl = 'https://qnkhbbpfitoiygpkkxii.supabase.co'; // substitua pela sua URL
+  const supabaseKey = 'COLE_AQUI_SUA_ANON_KEY'; // substitua pela sua anon key
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const storage = firebase.storage();
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById("login-area").style.display = "none";
+      document.getElementById("main-area").style.display = "block";
+      db.ref("users/" + user.uid + "/username").once("value").then(snapshot => {
+        const username = snapshot.val() || "Desconhecido";
+        document.getElementById("user-email").innerText = `Logado como: ${username} (${user.email})`;
+      });
+      carregarVideos();
+    } else {
+      document.getElementById("login-area").style.display = "block";
+      document.getElementById("main-area").style.display = "none";
+    }
+  });
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        document.getElementById("login-area").style.display = "none";
-        document.getElementById("main-area").style.display = "block";
-        db.ref("users/" + user.uid + "/username").once("value").then(snapshot => {
-          const username = snapshot.val() || "Desconhecido";
-          document.getElementById("user-email").innerText = `Logado como: ${username} (${user.email})`;
-        });
-        carregarVideos();
-      } else {
-        document.getElementById("login-area").style.display = "block";
-        document.getElementById("main-area").style.display = "none";
-      }
+  function register() {
+    const username = document.getElementById("registerUsername").value.trim();
+    const email = document.getElementById("registerEmail").value.trim();
+    const password = document.getElementById("registerPassword").value;
+
+    if (!username || !email || !password) {
+      return alert("Preencha todos os campos do cadastro.");
+    }
+
+    auth.createUserWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        const uid = userCredential.user.uid;
+        db.ref("users/" + uid).set({ username });
+      })
+      .catch((error) => {
+        alert("Erro ao cadastrar: " + error.message);
+      });
+  }
+
+  function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    auth.signInWithEmailAndPassword(email, password)
+      .catch((error) => {
+        alert("Erro ao logar: " + error.message);
+      });
+  }
+
+  function logout() {
+    auth.signOut();
+  }
+
+  async function uploadVideo() {
+    const file = document.getElementById("videoUpload").files[0];
+    if (!file) return alert("Selecione um vídeo MP4");
+
+    const user = auth.currentUser;
+    if (!user) return alert("Faça login antes.");
+
+    const filePath = `videos/${Date.now()}_${file.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("videos") // nome do bucket que você criou no Supabase Storage
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) return alert("Erro no upload: " + uploadError.message);
+
+    // Salvar metadados no Realtime Database Firebase
+    db.ref("videos").push({
+      url: supabase.storage.from("videos").getPublicUrl(filePath).publicUrl,
+      user: user.uid,
+      username: await getUsername(user.uid),
+      name: file.name
     });
 
-    function register() {
-      const username = document.getElementById("registerUsername").value.trim();
-      const email = document.getElementById("registerEmail").value.trim();
-      const password = document.getElementById("registerPassword").value;
+    alert("Vídeo enviado com sucesso!");
+    carregarVideos();
+  }
 
-      if (!username || !email || !password) {
-        return alert("Preencha todos os campos do cadastro.");
-      }
+  async function getUsername(uid) {
+    const snapshot = await db.ref("users/" + uid + "/username").once("value");
+    return snapshot.val() || "Anônimo";
+  }
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          const uid = userCredential.user.uid;
-          db.ref("users/" + uid).set({ username });
-        })
-        .catch((error) => {
-          alert("Erro ao cadastrar: " + error.message);
-        });
-    }
+  async function carregarVideos() {
+    const snapshot = await db.ref("videos").once("value");
+    const videoList = document.getElementById("videoList");
+    videoList.innerHTML = "";
 
-    function login() {
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value;
-
-      auth.signInWithEmailAndPassword(email, password)
-        .catch((error) => {
-          alert("Erro ao logar: " + error.message);
-        });
-    }
-
-    function logout() {
-      auth.signOut();
-    }
-
-    function uploadVideo() {
-      const file = document.getElementById("videoUpload").files[0];
-      if (!file) return alert("Selecione um vídeo MP4");
-
-      const uid = auth.currentUser.uid;
-      const fileRef = storage.ref("videos/" + Date.now() + "_" + file.name);
-
-      db.ref("users/" + uid + "/username").once("value").then(snapshot => {
-        const username = snapshot.val() || "Anônimo";
-
-        fileRef.put(file).then(snapshot => snapshot.ref.getDownloadURL())
-          .then(url => {
-            db.ref("videos").push({
-              url: url,
-              user: uid,
-              username: username,
-              name: file.name
-            });
-            alert("Vídeo enviado com sucesso!");
-            carregarVideos();
-          });
-      }).catch(err => {
-        alert("Erro ao enviar: " + err.message);
-      });
-    }
-
-    function carregarVideos() {
-      db.ref("videos").once("value").then(snapshot => {
-        const videoList = document.getElementById("videoList");
-        videoList.innerHTML = "";
-        snapshot.forEach(child => {
-          const data = child.val();
-          const container = document.createElement("div");
-          const video = document.createElement("video");
-          video.src = data.url;
-          video.controls = true;
-          video.width = 480;
-          const info = document.createElement("p");
-          info.innerText = `Postado por: ${data.username || "Anônimo"}`;
-          container.appendChild(video);
-          container.appendChild(info);
-          videoList.appendChild(container);
-        });
-      });
-    }
-  </script>
-</body>
-</html>
+    snapshot.forEach(child => {
+      const data = child.val();
+      const container = document.createElement("div");
+      const video = document.createElement("video");
+      video.src = data.url;
+      video.controls = true;
+      video.width = 480;
+      const info = document.createElement("p");
+      info.innerText = `Postado por: ${data.username || "Anônimo"}`;
+      container.appendChild(video);
+      container.appendChild(info);
+      videoList.appendChild(container);
+    });
+  }
+</script>
