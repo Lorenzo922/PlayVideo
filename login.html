@@ -1,49 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Perfil</title>
 </head>
 <body>
-  <h2>Login</h2>
-  <input type="text" id="username" placeholder="Nome de usuário">
-  <input type="password" id="password" placeholder="Senha">
-  <button onclick="registrar()">Entrar</button>
+  <h1>Bem-vindo</h1>
+  <p id="user-email"></p>
+  <button onclick="logout()">Sair</button>
 
-  <script type="module">
-    import { db } from './firebase.js';
-    import { ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    function registrar() {
-      const user = document.getElementById('username').value;
-      const pass = document.getElementById('password').value;
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+      authDomain: "playvideos-e2d5d.firebaseapp.com",
+      databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+      projectId: "playvideos-e2d5d",
+      storageBucket: "playvideos-e2d5d.appspot.com",
+      messagingSenderId: "220622211507",
+      appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
+      measurementId: "G-EJCD4QDK6G"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-      const userRef = ref(db, 'usuarios/' + user);
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("user-email").innerText = "Você está logado como: " + user.email;
+      } else {
+        window.location.href = "index.html"; // volta se não estiver logado
+      }
+    });
 
-      get(userRef).then(snapshot => {
-        if (snapshot.exists()) {
-          const dados = snapshot.val();
-          if (dados.senha === pass) {
-            alert("Login bem-sucedido!");
-            localStorage.setItem("usuarioLogado", user);
-            window.location.href = "main.html";
-          } else {
-            alert("Senha incorreta.");
-          }
-        } else {
-          // Registrar novo usuário
-          set(userRef, {
-            nome: user,
-            senha: pass
-          }).then(() => {
-            alert("Registrado com sucesso!");
-            localStorage.setItem("usuarioLogado", user);
-            window.location.href = "main.html";
-          });
-        }
+    function logout() {
+      firebase.auth().signOut().then(() => {
+        window.location.href = "index.html";
       });
     }
-
-    window.registrar = registrar;
   </script>
 </body>
 </html>
