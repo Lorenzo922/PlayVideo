@@ -1,45 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <title>Login</title>
 </head>
 <body>
   <h1>Login</h1>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Senha">
+  <input id="username" type="text" placeholder="Nome de usuário">
+  <input id="password" type="password" placeholder="Senha">
   <button onclick="login()">Entrar</button>
-  <p id="mensagem"></p>
+  <button onclick="register()">Registrar</button>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
-      authDomain: "playvideos-e2d5d.firebaseapp.com",
-      databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
-      projectId: "playvideos-e2d5d",
-      storageBucket: "playvideos-e2d5d.appspot.com",
-      messagingSenderId: "220622211507",
-      appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
-      measurementId: "G-EJCD4QDK6G"
-    };
-    firebase.initializeApp(firebaseConfig);
-
-    function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          window.location.href = "login.html"; // vai para tela privada
-        })
-        .catch(error => {
-          document.getElementById("mensagem").innerText = "Erro: " + error.message;
-        });
-    }
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
