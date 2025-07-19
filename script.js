@@ -1,46 +1,90 @@
-const usuario = localStorage.getItem("usuario");
-document.getElementById("user-info").innerText = usuario ? `Olá, ${usuario}` : "Não logado";
+// script.js
 
-function uploadVideo() {
-  const titulo = document.getElementById("videoTitle").value;
-  const file = document.getElementById("videoFile").files[0];
-  if (!file || !titulo || !usuario) {
-    alert("Preencha tudo!");
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+  authDomain: "playvideos-e2d5d.firebaseapp.com",
+  databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+  projectId: "playvideos-e2d5d",
+  storageBucket: "playvideos-e2d5d.appspot.com",
+  messagingSenderId: "220622211507",
+  appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
+  measurementId: "G-EJCD4QDK6G"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const storage = getStorage(app);
+
+const videoListDiv = document.getElementById("video-list");
+
+export async function uploadVideo() {
+  const titleInput = document.getElementById("videoTitle");
+  const fileInput = document.getElementById("videoFile");
+
+  const title = titleInput.value.trim();
+  const file = fileInput.files[0];
+
+  if (!title || !file) {
+    alert("Por favor, informe título e selecione um arquivo de vídeo.");
     return;
   }
 
-  const videoRef = firebase.storage().ref("videos/" + Date.now() + "_" + file.name);
-  videoRef.put(file).then(snapshot => {
-    return snapshot.ref.getDownloadURL();
-  }).then(url => {
-    const id = Date.now();
-    firebase.database().ref("videos/" + id).set({
-      titulo,
-      url,
-      autor: usuario
+  try {
+    // Upload do arquivo no Storage
+    const storageRef = sRef(storage, 'videos/' + Date.now() + "_" + file.name);
+    await uploadBytes(storageRef, file);
+
+    // Pega URL do arquivo no Storage
+    const url = await getDownloadURL(storageRef);
+
+    // Salva no Realtime Database
+    const videosRef = ref(db, 'videos');
+    await push(videosRef, {
+      titulo: title,
+      url: url,
+      criadoEm: Date.now()
     });
-    alert("Vídeo enviado!");
-    carregarVideos();
+
+    alert("Vídeo enviado com sucesso!");
+    titleInput.value = "";
+    fileInput.value = "";
+
+  } catch (error) {
+    alert("Erro ao enviar vídeo: " + error.message);
+  }
+}
+
+// Escuta e atualiza lista de vídeos publicados
+function listarVideos() {
+  const videosRef = ref(db, 'videos');
+  onValue(videosRef, (snapshot) => {
+    videoListDiv.innerHTML = "";
+
+    snapshot.forEach((childSnapshot) => {
+      const videoData = childSnapshot.val();
+
+      const videoEl = document.createElement("video");
+      videoEl.controls = true;
+      videoEl.src = videoData.url;
+      videoEl.width = 320;
+
+      const titleEl = document.createElement("div");
+      titleEl.textContent = videoData.titulo;
+
+      const container = document.createElement("div");
+      container.appendChild(titleEl);
+      container.appendChild(videoEl);
+
+      videoListDiv.appendChild(container);
+    });
   });
 }
 
-function carregarVideos() {
-  firebase.database().ref("videos").on("value", snap => {
-    const lista = document.getElementById("video-list");
-    lista.innerHTML = "";
-    snap.forEach(child => {
-      const vid = child.val();
-      lista.innerHTML += `
-        <div>
-          <h3>${vid.titulo} (por ${vid.autor})</h3>
-          <video width="320" height="240" controls>
-            <source src="${vid.url}" type="video/mp4">
-            Seu navegador não suporta vídeo.
-          </video>
-        </div>
-      `;
-    });
-  });
-}
+listarVideos();
 
-if (window.location.pathname.includes("index.html")) carregarVideos();
+// Expõe a função para o botão poder chamar
+window.uploadVideo = uploadVideo;
