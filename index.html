@@ -62,7 +62,7 @@
     // Config Supabase (substitua pelos seus dados)
     const supabaseUrl = 'https://qnkhbbpfitoiygpkkxii.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY';
-    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     // --- Funções Firebase ---
 
