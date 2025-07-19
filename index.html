@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>PlayVideos</title>
+  <meta charset="UTF-8" />
+  <title>PlayVideos - Estilo YouTube</title>
 </head>
 <body>
   <!-- LOGIN -->
   <div id="login-area">
     <h1>Login</h1>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Senha"><br>
+    <input type="email" id="email" placeholder="Email" /><br />
+    <input type="password" id="password" placeholder="Senha" /><br />
     <button id="login-btn">Entrar</button>
   </div>
 
@@ -17,110 +17,181 @@
   <div id="main-area" style="display: none;">
     <h1>Bem-vindo ao PlayVideos!</h1>
 
-    <input type="file" id="videoFile" accept="video/mp4">
+    <input type="text" id="videoTitle" placeholder="Título do vídeo" /><br />
+    <input type="file" id="videoFile" accept="video/mp4" /><br />
     <button id="upload-btn">Enviar Vídeo</button>
 
     <h2>Vídeos Enviados:</h2>
     <div id="videoList"></div>
+    <button id="logout-btn">Sair</button>
   </div>
 
   <!-- Firebase + Supabase -->
   <script type="module">
-    // Firebase
+    // --- Firebase Auth ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+    // --- Supabase ---
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+    // Config Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
       authDomain: "playvideos-e2d5d.firebaseapp.com",
       projectId: "playvideos-e2d5d",
     };
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          alert("Login realizado com sucesso!");
-          document.getElementById("login-area").style.display = "none";
-          document.getElementById("main-area").style.display = "block";
-          loadVideos();
-        })
-        .catch((error) => {
-          alert("Erro no login: " + error.message);
-        });
-    }
-
-    // Supabase
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
+    // Config Supabase
     const supabase = createClient(
       'https://qnkhbbpfitoiygpkkxii.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY'
     );
 
+    // LOGIN
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("Login realizado com sucesso!");
+      } catch (error) {
+        alert("Erro no login: " + error.message);
+      }
+    }
+
+    // LOGOUT
+    async function logout() {
+      await signOut(auth);
+      document.getElementById("login-area").style.display = "block";
+      document.getElementById("main-area").style.display = "none";
+      document.getElementById("videoList").innerHTML = "";
+    }
+
+    // UPLOAD VÍDEO + SALVAR METADADOS
     async function uploadVideo() {
-      const fileInput = document.getElementById('videoFile');
+      const fileInput = document.getElementById("videoFile");
+      const titleInput = document.getElementById("videoTitle");
       const file = fileInput.files[0];
+      const title = titleInput.value.trim();
+
       if (!file) {
         alert("Escolha um vídeo primeiro.");
         return;
       }
-
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .upload(`videos/${Date.now()}_${file.name}`, file);
-
-      if (error) {
-        alert("Erro ao enviar: " + error.message);
-      } else {
-        alert("Vídeo enviado com sucesso!");
-        loadVideos();
-      }
-    }
-
-    async function loadVideos() {
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .list('videos', { limit: 100 });
-
-      const container = document.getElementById("videoList");
-      container.innerHTML = "";
-
-      if (error) {
-        container.innerHTML = "Erro ao carregar vídeos.";
+      if (!title) {
+        alert("Digite o título do vídeo.");
         return;
       }
 
-      for (const file of data) {
-        const { data: urlData } = await supabase.storage
-          .from('videos')
-          .getPublicUrl(`videos/${file.name}`);
+      // Caminho para salvar
+      const filePath = `videos/${Date.now()}_${file.name}`;
 
-        const video = document.createElement("video");
-        video.src = urlData.publicUrl;
-        video.controls = true;
-        video.width = 400;
-        container.appendChild(video);
+      // Upload do arquivo
+      const { error: uploadError } = await supabase.storage
+        .from("videos")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        alert("Erro ao enviar vídeo: " + uploadError.message);
+        return;
+      }
+
+      // Salvar metadados no banco Supabase
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Usuário não autenticado.");
+        return;
+      }
+
+      const { error: dbError } = await supabase
+        .from("videos")
+        .insert([
+          {
+            title: title,
+            file_path: filePath,
+            uploader_email: user.email,
+          },
+        ]);
+
+      if (dbError) {
+        alert("Erro ao salvar metadados: " + dbError.message);
+        return;
+      }
+
+      alert("Vídeo enviado com sucesso!");
+      titleInput.value = "";
+      fileInput.value = "";
+      loadVideos();
+    }
+
+    // CARREGAR VÍDEOS COM TÍTULO E PLAYER (URLs assinadas)
+    async function loadVideos() {
+      const container = document.getElementById("videoList");
+      container.innerHTML = "";
+
+      // Pega lista de vídeos do banco Supabase (com metadados)
+      const { data: videos, error } = await supabase
+        .from("videos")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        container.innerHTML = "Erro ao carregar vídeos: " + error.message;
+        return;
+      }
+
+      for (const video of videos) {
+        const { data: signedUrlData, error: urlError } = await supabase.storage
+          .from("videos")
+          .createSignedUrl(video.file_path, 3600);
+
+        if (urlError) {
+          console.error("Erro ao gerar URL assinada:", urlError);
+          continue;
+        }
+
+        const videoWrapper = document.createElement("div");
+        videoWrapper.style.marginBottom = "20px";
+
+        const titleElem = document.createElement("h3");
+        titleElem.textContent = video.title;
+        videoWrapper.appendChild(titleElem);
+
+        const uploaderElem = document.createElement("p");
+        uploaderElem.textContent = `Enviado por: ${video.uploader_email}`;
+        videoWrapper.appendChild(uploaderElem);
+
+        const vid = document.createElement("video");
+        vid.src = signedUrlData.signedUrl;
+        vid.controls = true;
+        vid.width = 400;
+        videoWrapper.appendChild(vid);
+
+        container.appendChild(videoWrapper);
       }
     }
 
-    // Mostrar automaticamente se já está logado
+    // Detecta mudança de estado de autenticação
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById("login-area").style.display = "none";
         document.getElementById("main-area").style.display = "block";
         loadVideos();
+      } else {
+        document.getElementById("login-area").style.display = "block";
+        document.getElementById("main-area").style.display = "none";
       }
     });
 
     // EVENT LISTENERS
     document.getElementById("login-btn").addEventListener("click", login);
     document.getElementById("upload-btn").addEventListener("click", uploadVideo);
+    document.getElementById("logout-btn").addEventListener("click", logout);
   </script>
 </body>
 </html>
