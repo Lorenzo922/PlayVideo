@@ -1,43 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login - PlayVideo</title>
 </head>
 <body>
   <h1>Entrar / Criar Conta</h1>
 
-  <input type="text" id="username" placeholder="Nome de usuário"><br>
-  <input type="password" id="password" placeholder="Senha"><br>
+  <input type="text" id="username" placeholder="Nome de usuário" /><br />
+  <input type="password" id="password" placeholder="Senha" /><br />
 
   <button onclick="registrar()">Criar Conta</button>
   <button onclick="login()">Entrar</button>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
-  <script src="firebase.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js";
 
-  <script>
-    const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+      authDomain: "playvideos-e2d5d.firebaseapp.com",
+      databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+      projectId: "playvideos-e2d5d",
+      storageBucket: "playvideos-e2d5d.appspot.com",
+      messagingSenderId: "220622211507",
+      appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
+      measurementId: "G-EJCD4QDK6G"
+    };
 
-    function registrar() {
-      const user = document.getElementById("username").value;
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.registrar = function() {
+      const user = document.getElementById("username").value.trim();
       const pass = document.getElementById("password").value;
 
-      db.ref("users/" + user).set({
-        senha: pass
-      }).then(() => {
-        alert("Conta criada!");
-      });
+      if (!user || !pass) {
+        alert("Por favor, preencha usuário e senha.");
+        return;
+      }
+
+      set(ref(db, 'users/' + user), { senha: pass })
+        .then(() => alert("Conta criada!"))
+        .catch(error => alert("Erro ao criar conta: " + error.message));
     }
 
-    function login() {
-      const user = document.getElementById("username").value;
+    window.login = function() {
+      const user = document.getElementById("username").value.trim();
       const pass = document.getElementById("password").value;
 
-      db.ref("users/" + user).once("value")
-        .then((snapshot) => {
+      if (!user || !pass) {
+        alert("Por favor, preencha usuário e senha.");
+        return;
+      }
+
+      get(ref(db, 'users/' + user))
+        .then(snapshot => {
           if (snapshot.exists()) {
             if (snapshot.val().senha === pass) {
               alert("Login OK!");
@@ -48,7 +66,8 @@
           } else {
             alert("Usuário não encontrado!");
           }
-        });
+        })
+        .catch(error => alert("Erro no login: " + error.message));
     }
   </script>
 </body>
