@@ -1,49 +1,45 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>PlayVideo</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f9f9f9;
-    }
-
-    h1, h2 {
-      color: #333;
-    }
-
-    input, button {
-      padding: 8px;
-      margin: 5px 0;
-      font-size: 14px;
-    }
-
-    video {
-      display: block;
-      margin-bottom: 20px;
-      border: 1px solid #ccc;
-    }
-
-    div {
-      margin-bottom: 20px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Login</title>
 </head>
 <body>
-  <h1>PlayVideo</h1>
-  <div id="user-info"></div>
+  <h1>Login</h1>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+  <p id="mensagem"></p>
 
-  <h2>Postar vídeo</h2>
-  <input type="text" id="videoTitle" placeholder="Título do vídeo" /><br />
-  <input type="file" id="videoFile" accept="video/mp4" /><br />
-  <button onclick="uploadVideo()">Enviar</button>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <h2>Vídeos publicados</h2>
-  <div id="video-list"></div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+      authDomain: "playvideos-e2d5d.firebaseapp.com",
+      databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+      projectId: "playvideos-e2d5d",
+      storageBucket: "playvideos-e2d5d.appspot.com",
+      messagingSenderId: "220622211507",
+      appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
+      measurementId: "G-EJCD4QDK6G"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-  <!-- Script modular, importando script.js -->
-  <script type="module" src="script.js"></script>
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          window.location.href = "login.html"; // vai para tela privada
+        })
+        .catch(error => {
+          document.getElementById("mensagem").innerText = "Erro: " + error.message;
+        });
+    }
+  </script>
 </body>
 </html>
