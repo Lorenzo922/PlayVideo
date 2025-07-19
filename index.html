@@ -10,7 +10,7 @@
     <h1>Login</h1>
     <input type="email" id="email" placeholder="Email"><br>
     <input type="password" id="password" placeholder="Senha"><br>
-    <button onclick="login()">Entrar</button>
+    <button id="login-btn">Entrar</button>
   </div>
 
   <!-- PÁGINA PRINCIPAL -->
@@ -18,7 +18,7 @@
     <h1>Bem-vindo ao PlayVideos!</h1>
 
     <input type="file" id="videoFile" accept="video/mp4">
-    <button onclick="uploadVideo()">Enviar Vídeo</button>
+    <button id="upload-btn">Enviar Vídeo</button>
 
     <h2>Vídeos Enviados:</h2>
     <div id="videoList"></div>
@@ -39,7 +39,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    window.login = function () {
+    function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
@@ -53,16 +53,17 @@
         .catch((error) => {
           alert("Erro no login: " + error.message);
         });
-    };
+    }
 
     // Supabase
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-    const supabaseUrl = 'https://qnkhbbpfitoiygpkkxii.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      'https://qnkhbbpfitoiygpkkxii.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY'
+    );
 
-    window.uploadVideo = async function () {
+    async function uploadVideo() {
       const fileInput = document.getElementById('videoFile');
       const file = fileInput.files[0];
       if (!file) {
@@ -80,9 +81,9 @@
         alert("Vídeo enviado com sucesso!");
         loadVideos();
       }
-    };
+    }
 
-    window.loadVideos = async function () {
+    async function loadVideos() {
       const { data, error } = await supabase.storage
         .from('videos')
         .list('videos', { limit: 100 });
@@ -106,7 +107,7 @@
         video.width = 400;
         container.appendChild(video);
       }
-    };
+    }
 
     // Mostrar automaticamente se já está logado
     onAuthStateChanged(auth, (user) => {
@@ -116,6 +117,10 @@
         loadVideos();
       }
     });
+
+    // EVENT LISTENERS
+    document.getElementById("login-btn").addEventListener("click", login);
+    document.getElementById("upload-btn").addEventListener("click", uploadVideo);
   </script>
 </body>
 </html>
