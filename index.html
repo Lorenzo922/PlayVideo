@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+  <meta charset="UTF-8" />
   <title>PlayVideo</title>
   <style>
     body {
@@ -35,17 +36,14 @@
   <div id="user-info"></div>
 
   <h2>Postar vídeo</h2>
-  <input type="text" id="videoTitle" placeholder="Título do vídeo"><br>
-  <input type="file" id="videoFile" accept="video/mp4"><br>
+  <input type="text" id="videoTitle" placeholder="Título do vídeo" /><br />
+  <input type="file" id="videoFile" accept="video/mp4" /><br />
   <button onclick="uploadVideo()">Enviar</button>
 
   <h2>Vídeos publicados</h2>
   <div id="video-list"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-storage.js"></script>
-  <script src="firebase.js"></script>
-  <script src="script.js"></script>
+  <!-- Script modular, importando script.js -->
+  <script type="module" src="script.js"></script>
 </body>
 </html>
