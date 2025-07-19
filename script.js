@@ -1,4 +1,3 @@
-// Configuração Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
   authDomain: "playvideos-e2d5d.firebaseapp.com",
@@ -6,40 +5,49 @@ const firebaseConfig = {
   projectId: "playvideos-e2d5d",
   storageBucket: "playvideos-e2d5d.appspot.com",
   messagingSenderId: "220622211507",
-  appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
-  measurementId: "G-EJCD4QDK6G"
+  appId: "1:220622211507:web:920bc3199ffacb5b7963c6"
 };
 
-const app = firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+firebase.initializeApp(firebaseConfig);
 
-function login() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-
-  database.ref("users/" + username).get().then((snapshot) => {
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
-      if (userData.password === password) {
-        alert("Login bem-sucedido!");
-        // Redirecionar para outro HTML se quiser
-        // window.location.href = "home.html";
-      } else {
-        alert("Senha incorreta!");
-      }
-    } else {
-      alert("Usuário não encontrado!");
-    }
-  });
-}
+const auth = firebase.auth();
+const db = firebase.database();
 
 function register() {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
 
-  database.ref("users/" + username).set({
-    password: password
-  }).then(() => {
-    alert("Usuário registrado com sucesso!");
-  });
+  const emailFake = username + "@exemplo.com";
+
+  auth.createUserWithEmailAndPassword(emailFake, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      db.ref("users/" + uid).set({
+        username: username
+      });
+      alert("Cadastrado com sucesso!");
+    })
+    .catch((error) => {
+      alert("Erro ao cadastrar: " + error.message);
+    });
+}
+
+function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const emailFake = username + "@exemplo.com";
+
+  auth.signInWithEmailAndPassword(emailFake, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      db.ref("users/" + uid).once("value").then((snapshot) => {
+        const data = snapshot.val();
+        alert("Bem-vindo, " + data.username + "!");
+        // Aqui você pode redirecionar para outra página se quiser
+      });
+    })
+    .catch((error) => {
+      alert("Erro ao logar: " + error.message);
+    });
 }
