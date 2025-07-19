@@ -1,44 +1,45 @@
-import { db, ref, set, get, child } from "./firebase.js";
+// Configuração Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
+  authDomain: "playvideos-e2d5d.firebaseapp.com",
+  databaseURL: "https://playvideos-e2d5d-default-rtdb.firebaseio.com",
+  projectId: "playvideos-e2d5d",
+  storageBucket: "playvideos-e2d5d.appspot.com",
+  messagingSenderId: "220622211507",
+  appId: "1:220622211507:web:920bc3199ffacb5b7963c6",
+  measurementId: "G-EJCD4QDK6G"
+};
 
-// CADASTRO
-function registrar() {
-  const nome = document.getElementById("nome").value;
-  const senha = document.getElementById("senha").value;
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-  const userRef = ref(db, "users/" + nome);
+function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-  set(userRef, {
-    senha: senha
-  }).then(() => {
-    alert("Usuário cadastrado com sucesso!");
-  }).catch((error) => {
-    console.error(error);
-  });
-}
-
-// LOGIN
-function logar() {
-  const nome = document.getElementById("nome").value;
-  const senha = document.getElementById("senha").value;
-
-  const dbRef = ref(db);
-
-  get(child(dbRef, `users/${nome}`)).then((snapshot) => {
+  database.ref("users/" + username).get().then((snapshot) => {
     if (snapshot.exists()) {
-      if (snapshot.val().senha === senha) {
+      const userData = snapshot.val();
+      if (userData.password === password) {
         alert("Login bem-sucedido!");
-        // aqui pode redirecionar para a página principal
+        // Redirecionar para outro HTML se quiser
+        // window.location.href = "home.html";
       } else {
-        alert("Senha incorreta.");
+        alert("Senha incorreta!");
       }
     } else {
-      alert("Usuário não encontrado.");
+      alert("Usuário não encontrado!");
     }
-  }).catch((error) => {
-    console.error(error);
   });
 }
 
-// Torna funções globais se precisar usar no HTML
-window.registrar = registrar;
-window.logar = logar;
+function register() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  database.ref("users/" + username).set({
+    password: password
+  }).then(() => {
+    alert("Usuário registrado com sucesso!");
+  });
+}
