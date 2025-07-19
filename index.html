@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>PlayVideos Firebase + Supabase</title>
+  <title>PlayVideoS</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     input, button { margin: 5px 0; padding: 8px; width: 300px; }
@@ -44,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
 
   <script>
-    // --- Config Firebase ---
+    // Config Firebase (substitua pelos seus dados)
     const firebaseConfig = {
       apiKey: "AIzaSyA-PEvp2reLWNxI_HKPMS2vofxSNOvDzDE",
       authDomain: "playvideos-e2d5d.firebaseapp.com",
@@ -59,12 +59,13 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // --- Config Supabase ---
+    // Config Supabase (substitua pelos seus dados)
     const supabaseUrl = 'https://qnkhbbpfitoiygpkkxii.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY';
     const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-    // --- Cadastro Firebase ---
+    // --- Funções Firebase ---
+
     function register() {
       const username = document.getElementById("registerUsername").value.trim();
       const email = document.getElementById("registerEmail").value.trim();
@@ -78,16 +79,10 @@
           const uid = userCredential.user.uid;
           return db.ref("users/" + uid).set({ username });
         })
-        .then(() => {
-          alert("Cadastro realizado!");
-          document.getElementById("registerUsername").value = "";
-          document.getElementById("registerEmail").value = "";
-          document.getElementById("registerPassword").value = "";
-        })
+        .then(() => alert("Cadastro realizado!"))
         .catch(e => alert("Erro no cadastro: " + e.message));
     }
 
-    // --- Login Firebase ---
     async function login() {
       const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
@@ -97,20 +92,16 @@
       }
       try {
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        alert("Login realizado com sucesso!");
         updateUI(userCredential.user);
       } catch (e) {
         alert("Erro no login: " + e.message);
-        console.error("Erro no login:", e);
       }
     }
 
-    // --- Logout ---
     function logout() {
       auth.signOut();
     }
 
-    // --- Atualiza interface ---
     function updateUI(user) {
       if (user) {
         document.getElementById("login-area").style.display = "none";
@@ -128,12 +119,9 @@
       }
     }
 
-    // --- Monitorar estado do usuário ---
-    auth.onAuthStateChanged(user => {
-      updateUI(user);
-    });
+    auth.onAuthStateChanged(user => updateUI(user));
 
-    // --- Upload vídeo no Supabase ---
+    // --- Upload vídeo para Supabase Storage ---
     async function uploadVideo() {
       const fileInput = document.getElementById("videoUpload");
       if (fileInput.files.length === 0) {
@@ -150,44 +138,58 @@
         alert("Faça login primeiro.");
         return;
       }
+
       const filePath = `videos/${Date.now()}_${file.name}`;
-      const { data, error: uploadError } = await supabase.storage
+
+      const { error: uploadError } = await supabase.storage
         .from("videos")
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
+
       if (uploadError) {
         alert("Erro no upload: " + uploadError.message);
         return;
       }
+
+      // Pega a URL pública
       const { data: { publicUrl } } = supabase.storage.from("videos").getPublicUrl(filePath);
+
+      // Salva o registro no Firebase (com URL do Supabase)
       const usernameSnap = await db.ref("users/" + user.uid + "/username").once("value");
       const username = usernameSnap.val() || "Anônimo";
+
       await db.ref("videos").push({
         url: publicUrl,
         user: user.uid,
-        username: username,
+        username,
         name: file.name,
         createdAt: Date.now()
       });
+
       alert("Vídeo enviado com sucesso!");
       fileInput.value = "";
       carregarVideos();
     }
 
-    // --- Carregar vídeos ---
+    // --- Carregar lista de vídeos do Firebase e mostrar vídeos do Supabase ---
     async function carregarVideos() {
       const snapshot = await db.ref("videos").orderByChild("createdAt").once("value");
       const videoList = document.getElementById("videoList");
       videoList.innerHTML = "";
+
       snapshot.forEach(child => {
         const data = child.val();
+
         const container = document.createElement("div");
         container.style.marginBottom = "20px";
+
         const video = document.createElement("video");
         video.src = data.url;
         video.controls = true;
         video.width = 480;
+
         const info = document.createElement("p");
         info.innerText = `Postado por: ${data.username || "Anônimo"}`;
+
         container.appendChild(video);
         container.appendChild(info);
         videoList.appendChild(container);
