@@ -5,14 +5,21 @@
   <title>PlayVideos</title>
 </head>
 <body>
+  <!-- Área de Login -->
   <div id="login-area" style="display: none;">
     <h1>Login</h1>
-    <input type="text" id="username" placeholder="Nome de usuário"><br>
-    <input type="password" id="password" placeholder="Senha"><br>
-    <button onclick="register()">Cadastrar</button>
+    <input type="email" id="loginEmail" placeholder="Seu email (gmail, hotmail...)"><br>
+    <input type="password" id="loginPassword" placeholder="Senha"><br>
     <button onclick="login()">Entrar</button>
+    <hr>
+    <h2>Cadastro</h2>
+    <input type="text" id="registerUsername" placeholder="Nome de usuário"><br>
+    <input type="email" id="registerEmail" placeholder="Seu email real"><br>
+    <input type="password" id="registerPassword" placeholder="Senha"><br>
+    <button onclick="register()">Cadastrar</button>
   </div>
 
+  <!-- Área principal -->
   <div id="main-area" style="display: none;">
     <h1>Bem-vindo ao PlayVideos!</h1>
     <p id="user-email"></p>
@@ -23,6 +30,7 @@
     <div id="videoList"></div>
   </div>
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -48,7 +56,10 @@
       if (user) {
         document.getElementById("login-area").style.display = "none";
         document.getElementById("main-area").style.display = "block";
-        document.getElementById("user-email").innerText = "Logado como: " + user.email;
+        db.ref("users/" + user.uid + "/username").once("value").then(snapshot => {
+          const username = snapshot.val() || "Desconhecido";
+          document.getElementById("user-email").innerText = `Logado como: ${username} (${user.email})`;
+        });
         carregarVideos();
       } else {
         document.getElementById("login-area").style.display = "block";
@@ -57,11 +68,15 @@
     });
 
     function register() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const emailFake = username + "@exemplo.com";
+      const username = document.getElementById("registerUsername").value.trim();
+      const email = document.getElementById("registerEmail").value.trim();
+      const password = document.getElementById("registerPassword").value;
 
-      auth.createUserWithEmailAndPassword(emailFake, password)
+      if (!username || !email || !password) {
+        return alert("Preencha todos os campos do cadastro.");
+      }
+
+      auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
           const uid = userCredential.user.uid;
           db.ref("users/" + uid).set({ username });
@@ -72,12 +87,10 @@
     }
 
     function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const emailFake = username + "@exemplo.com";
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
 
-      auth.signInWithEmailAndPassword(emailFake, password)
-        .then(() => {})
+      auth.signInWithEmailAndPassword(email, password)
         .catch((error) => {
           alert("Erro ao logar: " + error.message);
         });
@@ -94,18 +107,23 @@
       const uid = auth.currentUser.uid;
       const fileRef = storage.ref("videos/" + Date.now() + "_" + file.name);
 
-      fileRef.put(file).then(snapshot => snapshot.ref.getDownloadURL())
-        .then(url => {
-          db.ref("videos").push({
-            url: url,
-            user: uid,
-            name: file.name
+      db.ref("users/" + uid + "/username").once("value").then(snapshot => {
+        const username = snapshot.val() || "Anônimo";
+
+        fileRef.put(file).then(snapshot => snapshot.ref.getDownloadURL())
+          .then(url => {
+            db.ref("videos").push({
+              url: url,
+              user: uid,
+              username: username,
+              name: file.name
+            });
+            alert("Vídeo enviado com sucesso!");
+            carregarVideos();
           });
-          alert("Vídeo enviado com sucesso!");
-          carregarVideos();
-        }).catch(err => {
-          alert("Erro ao enviar: " + err.message);
-        });
+      }).catch(err => {
+        alert("Erro ao enviar: " + err.message);
+      });
     }
 
     function carregarVideos() {
@@ -114,11 +132,16 @@
         videoList.innerHTML = "";
         snapshot.forEach(child => {
           const data = child.val();
+          const container = document.createElement("div");
           const video = document.createElement("video");
           video.src = data.url;
           video.controls = true;
           video.width = 480;
-          videoList.appendChild(video);
+          const info = document.createElement("p");
+          info.innerText = `Postado por: ${data.username || "Anônimo"}`;
+          container.appendChild(video);
+          container.appendChild(info);
+          videoList.appendChild(container);
         });
       });
     }
