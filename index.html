@@ -26,7 +26,6 @@
     <button id="logout-btn">Sair</button>
   </div>
 
-  <!-- Firebase + Supabase -->
   <script type="module">
     // --- Firebase Auth ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -50,7 +49,6 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY'
     );
 
-    // LOGIN
     async function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -63,7 +61,6 @@
       }
     }
 
-    // LOGOUT
     async function logout() {
       await signOut(auth);
       document.getElementById("login-area").style.display = "block";
@@ -71,7 +68,6 @@
       document.getElementById("videoList").innerHTML = "";
     }
 
-    // UPLOAD VÍDEO + SALVAR METADADOS
     async function uploadVideo() {
       const fileInput = document.getElementById("videoFile");
       const titleInput = document.getElementById("videoTitle");
@@ -87,10 +83,10 @@
         return;
       }
 
-      // Caminho para salvar
+      // Salva com timestamp para evitar sobrescrever
       const filePath = `videos/${Date.now()}_${file.name}`;
 
-      // Upload do arquivo
+      // Faz upload no Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("videos")
         .upload(filePath, file);
@@ -100,18 +96,19 @@
         return;
       }
 
-      // Salvar metadados no banco Supabase
+      // Pega email do usuário Firebase (se quiser, pode ajustar para pegar do Supabase)
       const user = auth.currentUser;
       if (!user) {
         alert("Usuário não autenticado.");
         return;
       }
 
+      // Salva metadados no Supabase Database
       const { error: dbError } = await supabase
         .from("videos")
         .insert([
           {
-            title: title,
+            title,
             file_path: filePath,
             uploader_email: user.email,
           },
@@ -128,12 +125,10 @@
       loadVideos();
     }
 
-    // CARREGAR VÍDEOS COM TÍTULO E PLAYER (URLs assinadas)
     async function loadVideos() {
       const container = document.getElementById("videoList");
       container.innerHTML = "";
 
-      // Pega lista de vídeos do banco Supabase (com metadados)
       const { data: videos, error } = await supabase
         .from("videos")
         .select("*")
@@ -176,7 +171,6 @@
       }
     }
 
-    // Detecta mudança de estado de autenticação
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById("login-area").style.display = "none";
@@ -188,7 +182,6 @@
       }
     });
 
-    // EVENT LISTENERS
     document.getElementById("login-btn").addEventListener("click", login);
     document.getElementById("upload-btn").addEventListener("click", uploadVideo);
     document.getElementById("logout-btn").addEventListener("click", logout);
