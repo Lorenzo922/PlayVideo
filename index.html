@@ -2,18 +2,19 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>PlayVideos - Estilo YouTube</title>
+  <title>PlayVideos - Login e Cadastro</title>
 </head>
 <body>
-  <!-- LOGIN -->
+  <!-- ÁREA DE LOGIN / CADASTRO -->
   <div id="login-area">
-    <h1>Login</h1>
+    <h1>Login ou Cadastro</h1>
     <input type="email" id="email" placeholder="Email" /><br />
     <input type="password" id="password" placeholder="Senha" /><br />
     <button id="login-btn">Entrar</button>
+    <button id="signup-btn">Cadastrar</button>
   </div>
 
-  <!-- PÁGINA PRINCIPAL -->
+  <!-- ÁREA PRINCIPAL APÓS LOGIN -->
   <div id="main-area" style="display: none;">
     <h1>Bem-vindo ao PlayVideos!</h1>
 
@@ -23,13 +24,20 @@
 
     <h2>Vídeos Enviados:</h2>
     <div id="videoList"></div>
+
     <button id="logout-btn">Sair</button>
   </div>
 
   <script type="module">
     // --- Firebase Auth ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     // --- Supabase ---
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
@@ -49,10 +57,10 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2hiYnBmaXRvaXlncGtreGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjQ2NDAsImV4cCI6MjA2ODU0MDY0MH0.DJOPPhwycwsUaOStVQcVOsHDTZrXMDjN5KPohUvRkzY'
     );
 
+    // Função Login
     async function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
       try {
         await signInWithEmailAndPassword(auth, email, password);
         alert("Login realizado com sucesso!");
@@ -61,6 +69,19 @@
       }
     }
 
+    // Função Cadastro
+    async function signup() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("Conta criada com sucesso! Você já está logado.");
+      } catch (error) {
+        alert("Erro no cadastro: " + error.message);
+      }
+    }
+
+    // Logout
     async function logout() {
       await signOut(auth);
       document.getElementById("login-area").style.display = "block";
@@ -68,6 +89,7 @@
       document.getElementById("videoList").innerHTML = "";
     }
 
+    // Upload vídeo + salvar metadados
     async function uploadVideo() {
       const fileInput = document.getElementById("videoFile");
       const titleInput = document.getElementById("videoTitle");
@@ -83,10 +105,9 @@
         return;
       }
 
-      // Salva com timestamp para evitar sobrescrever
       const filePath = `videos/${Date.now()}_${file.name}`;
 
-      // Faz upload no Supabase Storage
+      // Upload arquivo
       const { error: uploadError } = await supabase.storage
         .from("videos")
         .upload(filePath, file);
@@ -96,19 +117,18 @@
         return;
       }
 
-      // Pega email do usuário Firebase (se quiser, pode ajustar para pegar do Supabase)
+      // Salvar metadados
       const user = auth.currentUser;
       if (!user) {
         alert("Usuário não autenticado.");
         return;
       }
 
-      // Salva metadados no Supabase Database
       const { error: dbError } = await supabase
         .from("videos")
         .insert([
           {
-            title,
+            title: title,
             file_path: filePath,
             uploader_email: user.email,
           },
@@ -125,6 +145,7 @@
       loadVideos();
     }
 
+    // Carregar vídeos
     async function loadVideos() {
       const container = document.getElementById("videoList");
       container.innerHTML = "";
@@ -171,6 +192,7 @@
       }
     }
 
+    // Estado do usuário
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById("login-area").style.display = "none";
@@ -182,7 +204,9 @@
       }
     });
 
+    // Eventos
     document.getElementById("login-btn").addEventListener("click", login);
+    document.getElementById("signup-btn").addEventListener("click", signup);
     document.getElementById("upload-btn").addEventListener("click", uploadVideo);
     document.getElementById("logout-btn").addEventListener("click", logout);
   </script>
